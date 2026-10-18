@@ -1,0 +1,33 @@
+when:
+  - event: [push, manual]
+    branch: dev
+
+labels:
+  location: production-80
+  repo: zengwenliang416/DEEIX-Chat
+
+steps:
+  - name: build-and-test
+    image: docker:29-cli
+    environment:
+      DOCKER_CONFIG: /opt/deeix-chat/docker-client
+      BUILDX_BUILDER: deeix-chat-production
+      EXPECTED_COMMIT: "${EXPECTED_COMMIT:-}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/deeix-chat:/opt/deeix-chat
+    commands:
+      - sh deploy/production/build.sh
+
+  - name: deploy
+    image: docker:29-cli
+    depends_on: [build-and-test]
+    environment:
+      DOCKER_CONFIG: /opt/deeix-chat/docker-client
+      DEEIX_DEPLOY_ROOT: /opt/deeix-chat
+      DEEIX_PROBE_IMAGE: curlimages/curl:8.16.0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/deeix-chat:/opt/deeix-chat
+    commands:
+      - sh deploy/production/deploy.sh

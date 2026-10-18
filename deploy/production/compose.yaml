@@ -1,0 +1,45 @@
+name: deeix-chat-production
+
+services:
+  app:
+    image: ${DEEIX_CHAT_IMAGE:?DEEIX_CHAT_IMAGE must name the verified local image}
+    container_name: deeix-chat-production-app
+    pull_policy: never
+    restart: unless-stopped
+    stop_grace_period: 30s
+    init: true
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1g
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:3180:8080"
+    volumes:
+      - type: bind
+        source: ./config.yaml
+        target: /app/config.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./data
+        target: /app/data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./storage
+        target: /app/storage
+        bind:
+          create_host_path: false
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  default:
+    name: deeix-chat-production
+    external: true

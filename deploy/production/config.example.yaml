@@ -1,0 +1,53 @@
+# Copy to /opt/deeix-chat/config.yaml with mode 0600. This file is not a secret.
+# Generate independent random values for both change-me placeholders before use.
+app:
+  name: DEEIX Chat
+  env: prod
+
+server:
+  http_port: "8080"
+  cors_allow_origin: "https://deeix.motion-cover.com"
+  # Before opening public traffic, append the actual deeix-chat-production
+  # Docker network gateway as one /32 CIDR. Do not trust all private networks.
+  trusted_proxies: "127.0.0.1/32,::1/128"
+  public_api_base_url: "https://deeix.motion-cover.com"
+  public_web_base_url: "https://deeix.motion-cover.com"
+  frontend_dist_dir: "/app/frontend/out"
+  read_header_timeout_seconds: 10
+  read_timeout_seconds: 120
+  idle_timeout_seconds: 120
+  max_header_bytes: 1048576
+  shutdown_timeout_seconds: 10
+
+security:
+  jwt_secret: "change-me-with-an-independent-random-secret"
+  data_encryption_key: "change-me-with-another-independent-random-secret"
+  data_encryption_keys_previous: []
+  mcp_user_context_secret: ""
+  ssrf_protection_enabled: true
+  # Add only explicitly trusted integrations if they use a private destination.
+  ssrf_allowed_hosts: ""
+  ssrf_allowed_cidrs: ""
+
+database:
+  driver: sqlite
+  sqlite:
+    path: /app/data/deeix.db
+    dsn: ""
+    max_open_conns: 1
+    busy_timeout_ms: 5000
+    cache_size_kb: 20480
+    mmap_size_bytes: 268435456
+    synchronous: NORMAL
+    temp_store: MEMORY
+
+cache:
+  driver: memory
+
+storage:
+  backend: local
+  local:
+    root_dir: /app/storage
+
+geoip:
+  provider: none

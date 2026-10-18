@@ -1,0 +1,60 @@
+# Install inside nginx's http context after DNS and TLS are ready.
+# Replace certificate paths if the host uses an existing wildcard certificate.
+map $http_upgrade $deeix_connection_upgrade {
+    default upgrade;
+    ''      '';
+}
+
+server {
+    listen 80;
+    server_name deeix.motion-cover.com;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /opt/deeix-chat/acme;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name deeix.motion-cover.com;
+
+    ssl_certificate /opt/deeix-chat/letsencrypt/live/deeix.motion-cover.com/fullchain.pem;
+    ssl_certificate_key /opt/deeix-chat/letsencrypt/live/deeix.motion-cover.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    client_max_body_size 100m;
+
+    # Cloudflare may redirect HTTP challenges to HTTPS (Always Use HTTPS).
+    location ^~ /.well-known/acme-challenge/ {
+        root /opt/deeix-chat/acme;
+        try_files $uri =404;
+    }
+
+    location / {
+        if (-f /opt/deeix-chat/maintenance.flag) {
+            add_header X-DEEIX-Maintenance deployment always;
+            return 503;
+        }
+
+        proxy_pass http://127.0.0.1:3180;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $deeix_connection_upgrade;
+
+        # Chat responses use SSE; keep streamed chunks and long responses live.
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
